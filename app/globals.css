@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #0f0f0f;
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+}
+
+input, button {
+  color: black;
+}
