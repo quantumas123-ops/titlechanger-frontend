@@ -18,7 +18,7 @@ export default function Dashboard() {
 
   // Fetch videos
   useEffect(() => {
-    fetch("http://localhost:5000/youtube/videos")
+    fetch("https://titlechanger-backend.onrender.com/youtube/videos")
       .then((res) => res.json())
       .then((data) => {
         setVideos(data);
@@ -65,7 +65,7 @@ export default function Dashboard() {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:5000/youtube/update-titles", {
+      const res = await fetch("https://titlechanger-backend.onrender.com/youtube/update-titles", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
