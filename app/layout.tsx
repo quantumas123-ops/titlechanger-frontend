@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function RootLayout({
   children,
@@ -19,11 +20,14 @@ export default function RootLayout({
       fontFamily: "Arial, sans-serif"
     }}
   >
-    <img
-      src="/logo.png"
-      alt="YouTube Title Changer"
-      style={{ height: 45 }}
-    />
+    <Image
+  src="/logo.png"
+  alt="YouTube Title Changer"
+  width={45}
+  height={45}
+  priority
+/>
+
 
     <h1
       style={{
