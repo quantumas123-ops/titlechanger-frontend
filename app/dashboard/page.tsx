@@ -1,189 +1,85 @@
-"use client";
+const [error, setError] = useState("");
 
+"use client";
 import { useEffect, useState } from "react";
 
-type Video = {
-  videoId: string;
-  title: string;
-};
-
 export default function Dashboard() {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [selectedVideos, setSelectedVideos] = useState<string[]>([]);
-  const [selectAll, setSelectAll] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [message, setMessage] = useState("");
+  const [videos, setVideos] = useState<any[]>([]);
+  const [title, setTitle] = useState("");
+  const [loading, setLoading] = useState(false);
+  const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  // Fetch videos
   useEffect(() => {
-    fetch("https://titlechanger-backend.onrender.com/youtube/videos")
-      .then((res) => res.json())
-      .then((data) => {
-        setVideos(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setMessage("❌ Failed to load videos");
-        setLoading(false);
-      });
-  }, []);
-
-  // Select all toggle
-  const toggleSelectAll = () => {
-    if (selectAll) {
-      setSelectedVideos([]);
-    } else {
-      setSelectedVideos(videos.map((v) => v.videoId));
-    }
-    setSelectAll(!selectAll);
-  };
-
-  // Select single video
-  const toggleVideo = (id: string) => {
-    setSelectedVideos((prev) =>
-      prev.includes(id)
-        ? prev.filter((v) => v !== id)
-        : [...prev, id]
-    );
-  };
-
-  // Update titles
-  const updateTitles = async () => {
-    if (!newTitle.trim()) {
-      alert("Enter new title or hashtags");
-      return;
-    }
-
-    if (selectedVideos.length === 0) {
-      alert("Select at least one video");
-      return;
-    }
-
-    setUpdating(true);
-    setMessage("");
-
+  const loadVideos = async () => {
     try {
-      const res = await fetch("https://titlechanger-backend.onrender.com/youtube/update-titles", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          newTitle,
-          videoIds: selectedVideos,
-        }),
-      });
-
-      if (!res.ok) throw new Error();
-
-      setMessage("✅ Titles updated successfully");
-
-      // Update UI titles
-      setVideos((prev) =>
-        prev.map((v) =>
-          selectedVideos.includes(v.videoId)
-            ? { ...v, title: newTitle }
-            : v
-        )
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/videos`,
+        { credentials: "include" }
       );
-    } catch {
-      setMessage("❌ Failed to update titles");
-    }
 
-    setUpdating(false);
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.error === "QUOTA_EXCEEDED") {
+          setError(
+            "Daily YouTube API limit reached. Please try again later."
+          );
+        } else {
+          setError("Unable to load videos. Please refresh.");
+        }
+        return;
+      }
+
+      setVideos(data);
+      setError(""); // clear old error
+    } catch (err) {
+      setError("Server is waking up. Please refresh in 10 seconds.");
+    }
   };
+
+  loadVideos();
+}, []);
+
+
+  const updateTitles = async () => {
+    setLoading(true);
+    await fetch(`${backend}/api/update-titles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, videos })
+    });
+    alert("Titles updated successfully");
+    
+    setLoading(false);
+  };
+  
 
   return (
-    <div
-      style={{
-        background: "#f4f4f4",
-        minHeight: "100vh",
-        padding: "40px",
-        color: "#000",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "900px",
-          margin: "0 auto",
-          background: "#fff",
-          padding: "30px",
-          borderRadius: "10px",
-        }}
+    <main style={{ maxWidth: 600, margin: "auto", paddingTop: 50 }}>
+      <h2>Dashboard</h2>
+
+      <input
+        placeholder="Enter new title / hashtags"
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        style={{ width: "100%", padding: 10 }}
+      />
+
+      <button
+        onClick={updateTitles}
+        disabled={loading}
+        style={{ marginTop: 10 }}
       >
-        <h1>Dashboard</h1>
+        {loading ? "Processing..." : "Update Titles"}
+      </button>
+{error && (
+  <p style={{ color: "orange", marginTop: 10 }}>
+    ⚠️ {error}
+  </p>
+)}
 
-        {/* INPUT */}
-        <input
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          placeholder="Enter new title / hashtags"
-          style={{
-            padding: "10px",
-            width: "70%",
-            border: "1px solid #ccc",
-            borderRadius: "6px",
-            marginRight: "10px",
-          }}
-        />
-
-        <button
-          onClick={updateTitles}
-          disabled={updating}
-          style={{
-            padding: "10px 16px",
-            background: "#000",
-            color: "#fff",
-            borderRadius: "6px",
-            cursor: "pointer",
-          }}
-        >
-          {updating ? "Updating..." : "Update Titles"}
-        </button>
-
-        {message && (
-          <p style={{ marginTop: "15px", fontWeight: "bold" }}>{message}</p>
-        )}
-
-        <hr style={{ margin: "25px 0" }} />
-
-        {/* SELECT ALL */}
-        <label style={{ display: "block", marginBottom: "10px" }}>
-          <input
-            type="checkbox"
-            checked={selectAll}
-            onChange={toggleSelectAll}
-          />{" "}
-          <strong>Select All Videos</strong>
-        </label>
-
-        {/* VIDEOS LIST */}
-        {loading ? (
-          <p>Loading videos...</p>
-        ) : (
-          videos.map((video) => (
-            <div
-              key={video.videoId}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "8px 0",
-                borderBottom: "1px solid #ddd",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={selectedVideos.includes(video.videoId)}
-                onChange={() => toggleVideo(video.videoId)}
-                style={{ marginRight: "10px" }}
-              />
-              {video.title}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+      <p>{videos.length} videos loaded</p>
+    </main>
   );
 }
+
